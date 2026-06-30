@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>推送管理器 · ct256.cn</title>
+<link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/vant@4/lib/index.css">
+<style>
+:root {
+  --bg: #0a1628; --card: #112240; --border: #1e3a5f; --text: #8899b0;
+  --primary: #4da6ff; --danger: #ef4444; --success: #22c55e; --warn: #f59e0b;
+  --radius: 12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+#app{max-width:600px;margin:0 auto;padding:0 0 80px}
+
+/* Login */
+.login-box{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-card{background:var(--card);border-radius:16px;padding:32px 24px;width:100%;max-width:340px;text-align:center}
+.login-card h2{color:#fff;margin-bottom:8px;font-size:22px}
+.login-card .sub{font-size:13px;color:var(--text);margin-bottom:20px}
+.login-card input{width:100%;padding:12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:#fff;font-size:15px;margin-bottom:12px;outline:none}
+.login-card button{width:100%;padding:12px;border-radius:var(--radius);background:var(--primary);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer}
+
+/* Header */
+.header{background:var(--card);padding:12px 16px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.header h1{font-size:18px;color:#fff}
+.header-actions{display:flex;gap:8px}
+.icon-btn{width:34px;height:34px;border-radius:50%;background:var(--bg);color:var(--text);border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{padding:8px 16px;border-radius:20px;font-size:13px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin:8px 12px}
+.card-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title{font-size:14px;font-weight:600;color:#fff}
+.card-sub{font-size:12px;color:var(--text);margin-top:4px}
+
+/* Stats */
+.stats{display:flex;gap:8px;padding:8px 12px}
+.stat{flex:1;background:var(--card);border-radius:var(--radius);padding:14px;text-align:center}
+.stat-num{font-size:24px;font-weight:700;color:#fff}
+.stat-label{font-size:11px;color:var(--text);margin-top:4px}
+
+/* Project item */
+.proj-item{background:var(--card);border-radius:var(--radius);padding:14px;margin:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.proj-info{flex:1;min-width:0}
+.proj-name{font-size:14px;color:#fff;font-weight:500}
+.proj-path{font-size:11px;color:var(--text);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-tag{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--border);color:var(--text)}
+.proj-actions{display:flex;gap:6px}
+.action-btn{padding:6px 12px;border-radius:16px;font-size:12px;border:none;cursor:pointer;font-weight:500}
+.btn-push{background:var(--primary);color:#fff}
+.btn-del{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+
+/* Log item */
+.log-item{background:var(--card);border-radius:var(--radius);padding:12px;margin:6px 12px}
+.log-action{font-size:13px;color:#fff}
+.log-detail{font-size:11px;color:var(--text);margin-top:4px}
+.log-time{font-size:10px;color:var(--text);margin-top:4px}
+.log-badge{font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px}
+.log-ok{background:rgba(34,197,94,.2);color:var(--success)}
+.log-err{background:rgba(239,68,68,.2);color:var(--danger)}
+
+/* Empty */
+.empty{text-align:center;padding:40px 20px;color:var(--text);font-size:14px}
+
+/* Modal overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:380px;padding:20px;max-height:80vh;overflow-y:auto}
+.modal h3{color:#fff;font-size:16px;margin-bottom:16px}
+.modal input,.modal select{width:100%;padding:10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:#fff;font-size:14px;margin-bottom:10px;outline:none}
+.modal label{font-size:12px;color:var(--text);display:block;margin-bottom:4px}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+.modal-actions button{flex:1;padding:10px;border-radius:var(--radius);border:none;font-size:14px;cursor:pointer}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-cancel{background:var(--border);color:var(--text)}
+
+/* Toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Policy */
+.policy-item{background:var(--card);border-radius:var(--radius);padding:14px;margin:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.policy-name{font-size:14px;color:#fff}
+.policy-action{font-size:11px;padding:2px 8px;border-radius:8px;background:var(--border);color:var(--text)}
+.policy-toggle{width:44px;height:24px;border-radius:12px;background:var(--border);cursor:pointer;position:relative;transition:.2s;border:none}
+.policy-toggle.on{background:var(--success)}
+.policy-toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s}
+.policy-toggle.on::after{left:23px}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Login -->
+  <div v-if="!token" class="login-box">
+    <div class="login-card">
+      <h2>🔐 推送管理器</h2>
+      <div class="sub">输入密码进入</div>
+      <input v-model="loginUser" placeholder="用户名" @keydown.enter="doLogin">
+      <input v-model="loginPwd" type="password" placeholder="密码" @keydown.enter="doLogin">
+      <button @click="doLogin">进入</button>
+      <div v-if="loginErr" style="color:var(--danger);font-size:12px;margin-top:8px">{{loginErr}}</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div v-else>
+    <div class="header">
+      <h1>📡 推送管理器</h1>
+      <div class="header-actions">
+        <button class="icon-btn" @click="logout">🚪</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab" :class="{active:tab==='dash'}" @click="tab='dash'">📊 仪表盘</button>
+      <button class="tab" :class="{active:tab==='projects'}" @click="tab='projects';loadProjects()">📦 项目</button>
+      <button class="tab" :class="{active:tab==='self'}" @click="tab='self';loadSelf()">⚙️ 自保</button>
+      <button class="tab" :class="{active:tab==='logs'}" @click="tab='logs';loadLogs()">📋 日志</button>
+      <button class="tab" :class="{active:tab==='policies'}" @click="tab='policies';loadPolicies()">🛡️ 策略</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div v-if="tab==='dash'">
+      <div class="stats">
+        <div class="stat"><div class="stat-num">{{stats.projects}}</div><div class="stat-label">项目</div></div>
+        <div class="stat"><div class="stat-num">{{stats.logs}}</div><div class="stat-label">操作</div></div>
+        <div class="stat"><div class="stat-num">{{stats.audit}}</div><div class="stat-label">审计</div></div>
+      </div>
+      <div class="card" style="margin:8px 12px">
+        <div class="card-title">📌 快捷操作</div>
+        <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">
+          <button class="action-btn btn-push" @click="tab='projects';loadProjects()">📦 管理项目</button>
+          <button class="action-btn" style="background:var(--border);color:var(--text)" @click="showAddProj=true">➕ 添加项目</button>
+          <button class="action-btn" style="background:var(--warn);color:#000" @click="tab='self';loadSelf()">⚡ 一键推送</button>
+        </div>
+      </div>
+      <div class="card" style="margin:8px 12px" v-if="recentLogs.length">
+        <div class="card-title">🕐 最近操作</div>
+        <div v-for="l in recentLogs" :key="l.id" style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;color:#fff">{{l.message}}</span>
+            <span class="log-badge" :class="l.status==='ok'?'log-ok':'log-err'">{{l.status}}</span>
+          </div>
+          <div style="font-size:10px;color:var(--text)">{{l.created_at}}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div v-if="tab==='projects'">
+      <div style="padding:8px 12px">
+        <button class="action-btn btn-push" @click="showAddProj=true">➕ 添加项目</button>
+      </div>
+      <div v-if="projects.length===0" class="empty">暂无项目</div>
+      <div v-for="p in projects" :key="p.id" class="proj-item">
+        <div class="proj-info">
+          <div class="proj-name">{{p.name}}</div>
+          <div class="proj-path">{{p.remote_url}}</div>
+        </div>
+        <div class="proj-actions">
+          <button class="action-btn btn-push" @click="pushProject(p)">⬆️ 推送</button>
+          <button class="action-btn btn-del" @click="delProject(p)">🗑️</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Self -->
+    <div v-if="tab==='self'">
+      <div class="card" style="margin:8px 12px">
+        <div class="card-title">🛡️ 管理器仓库状态</div>
+        <div style="margin-top:8px;font-size:13px">
+          <div>当前分支: <b style="color:#fff">{{selfStatus.branch}}</b></div>
+          <div>远程数: <b style="color:#fff">{{selfStatus.remotes_count}}</b></div>
+          <div>变更文件: <b :style="{color:selfStatus.changed_files?'var(--warn)':'var(--success)'}">{{selfStatus.changed_files}} 个</b></div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="action-btn btn-push" style="width:100%;padding:12px;font-size:14px" @click="pushAll">⚡ 推送到所有远程</button>
+        </div>
+      </div>
+      <div class="card" style="margin:8px 12px">
+        <div class="card-title">🌐 远程仓库</div>
+        <div v-if="remotes.length===0" class="empty" style="padding:20px">暂无远程仓库</div>
+        <div v-for="r in remotes" :key="r.id" class="proj-item" style="margin:4px 0">
+          <div class="proj-info">
+            <div class="proj-name">{{r.name}}</div>
+            <div class="proj-path">{{r.url}}</div>
+          </div>
+          <button class="action-btn btn-del" @click="delRemote(r)">🗑️</button>
+        </div>
+        <div style="margin-top:8px">
+          <button class="action-btn" style="background:var(--border);color:var(--text);width:100%;padding:10px" @click="showAddRemote=true">➕ 添加远程</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div v-if="tab==='logs'">
+      <div v-if="logs.length===0" class="empty">暂无日志</div>
+      <div v-for="l in logs" :key="l.id" class="log-item">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="log-action">{{l.action}} — {{l.message}}</span>
+          <span class="log-badge" :class="l.status==='ok'?'log-ok':'log-err'">{{l.status}}</span>
+        </div>
+        <div class="log-detail" v-if="l.detail" style="max-height:60px;overflow:hidden">{{l.detail}}</div>
+        <div class="log-time">{{l.created_at}}</div>
+      </div>
+    </div>
+
+    <!-- Policies -->
+    <div v-if="tab==='policies'">
+      <div style="padding:8px 12px">
+        <button class="action-btn btn-push" @click="showAddPolicy=true">➕ 添加策略</button>
+      </div>
+      <div v-if="policies.length===0" class="empty">暂无策略规则</div>
+      <div v-for="p in policies" :key="p.id" class="policy-item">
+        <div>
+          <div class="policy-name">{{p.name}}</div>
+          <div style="margin-top:4px">
+            <span class="policy-action" v-for="c in p.conditions" :key="c.type" style="margin-right:4px">{{c.type}}</span>
+            <span class="policy-action" style="background:var(--warn);color:#000">{{p.action}}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="policy-toggle" :class="{on:p.enabled}" @click="togglePolicy(p)"></button>
+          <button class="action-btn btn-del" @click="delPolicy(p)">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div class="overlay" v-if="showAddProj" @click.self="showAddProj=false">
+    <div class="modal">
+      <h3>➕ 添加项目</h3>
+      <label>项目名称</label>
+      <input v-model="newProj.name" placeholder="e.g. 门店资金 · funds-v2">
+      <label>本地路径</label>
+      <input v-model="newProj.path" placeholder="/home/xiaolin/projects/xxx">
+      <label>Git 远程地址</label>
+      <input v-model="newProj.remote_url" placeholder="git@github.com:user/repo.git">
+      <label>分支</label>
+      <input v-model="newProj.branch" placeholder="main">
+      <div class="modal-actions">
+        <button class="btn-cancel" @click="showAddProj=false">取消</button>
+        <button class="btn-primary" @click="addProject">确认添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" v-if="showAddRemote" @click.self="showAddRemote=false">
+    <div class="modal">
+      <h3>🌐 添加远程仓库</h3>
+      <label>名称</label>
+      <input v-model="newRemote.name" placeholder="origin / github / gitee">
+      <label>URL</label>
+      <input v-model="newRemote.url" placeholder="git@github.com:user/repo.git">
+      <div class="modal-actions">
+        <button class="btn-cancel" @click="showAddRemote=false">取消</button>
+        <button class="btn-primary" @click="addRemote">确认添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" v-if="showAddPolicy" @click.self="showAddPolicy=false">
+    <div class="modal">
+      <h3>🛡️ 添加策略规则</h3>
+      <label>规则名称</label>
+      <input v-model="newPolicy.name" placeholder="禁止强制推送 main">
+      <label>条件类型</label>
+      <select v-model="newPolicy.condType">
+        <option value="branch_match">分支匹配</option>
+        <option value="force_push">强制推送</option>
+        <option value="commit_count_max">提交数上限</option>
+      </select>
+      <label v-if="newPolicy.condType==='branch_match'">分支正则</label>
+      <input v-if="newPolicy.condType==='branch_match'" v-model="newPolicy.pattern" placeholder="^main$">
+      <label v-if="newPolicy.condType==='commit_count_max'">最大提交数</label>
+      <input v-if="newPolicy.condType==='commit_count_max'" v-model="newPolicy.max" type="number" placeholder="10">
+      <label>动作</label>
+      <select v-model="newPolicy.action">
+        <option value="block">阻止 (block)</option>
+        <option value="warn">警告 (warn)</option>
+        <option value="log">记录 (log)</option>
+      </select>
+      <div class="modal-actions">
+        <button class="btn-cancel" @click="showAddPolicy=false">取消</button>
+        <button class="btn-primary" @click="addPolicy">确认添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" v-if="pushResult" @click.self="pushResult=null">
+    <div class="modal">
+      <h3 :style="{color:pushResult.ok?'var(--success)':'var(--danger)'}">{{pushResult.ok?'✅ 推送成功':'❌ 推送失败'}}</h3>
+      <pre style="background:var(--bg);color:var(--text);padding:12px;border-radius:8px;font-size:11px;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all">{{pushResult.output}}</pre>
+      <div class="modal-actions">
+        <button class="btn-primary" style="width:100%" @click="pushResult=null">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" v-if="toastMsg">{{toastMsg}}</div>
+</div>
+
+<script src="https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+<script>
+const {createApp,ref,reactive,onMounted,computed} = Vue;
+const app = createApp({
+  setup(){
+    const API = window.location.pathname.startsWith('/guardian') ? '/guardian' : '';
+    const token = ref(localStorage.getItem('guardian_token')||'');
+    const loginUser = ref('admin');
+    const loginPwd = ref('');
+    const loginErr = ref('');
+    const toastMsg = ref('');
+    const tab = ref('dash');
+
+    // Data
+    const projects = ref([]);
+    const logs = ref([]);
+    const recentLogs = ref([]);
+    const remotes = ref([]);
+    const policies = ref([]);
+    const stats = reactive({projects:0,logs:0,audit:0});
+    const selfStatus = reactive({branch:'?',remotes_count:0,changed_files:0});
+
+    // Modals
+    const showAddProj = ref(false);
+    const showAddRemote = ref(false);
+    const showAddPolicy = ref(false);
+    const pushResult = ref(null);
+    const newProj = reactive({name:'',path:'',remote_url:'',branch:'main'});
+    const newRemote = reactive({name:'',url:''});
+    const newPolicy = reactive({name:'',condType:'branch_match',pattern:'^main$',max:10,action:'block'});
+
+    function toast(msg){ toastMsg.value=msg; setTimeout(()=>toastMsg.value='',2000); }
+
+    async function api(path, opts={}){
+      const headers={'Content-Type':'application/json'};
+      if(token.value) headers['Authorization']='Bearer '+token.value;
+      const res = await fetch(API+path,{headers,...opts});
+      if(res.status===401){ token.value='';localStorage.removeItem('guardian_token');return null; }
+      return res.json();
+    }
+
+    async function doLogin(){
+      loginErr.value='';
+      const res = await api('/api/auth/login',{method:'POST',body:JSON.stringify({username:loginUser.value,password:loginPwd.value})});
+      if(!res||!res.token){ loginErr.value='密码错误';return; }
+      token.value=res.token;
+      localStorage.setItem('guardian_token',res.token);
+      await loadDash();
+    }
+
+    function logout(){ token.value='';localStorage.removeItem('guardian_token');tab.value='dash'; }
+
+    async function loadDash(){
+      const [pl,ll,al] = await Promise.all([
+        api('/api/projects'), api('/api/logs?limit=5'), api('/api/audit?limit=1')
+      ]);
+      stats.projects = pl?.projects?.length||0;
+      stats.logs = ll?.total||0;
+      stats.audit = al?.total||0;
+      recentLogs.value = ll?.logs?.slice(0,8)||[];
+    }
+
+    async function loadProjects(){
+      const res = await api('/api/projects');
+      if(res) projects.value = res.projects;
+    }
+
+    async function loadLogs(){
+      const res = await api('/api/logs?limit=100');
+      if(res) logs.value = res.logs;
+    }
+
+    async function loadSelf(){
+      const [s,r] = await Promise.all([api('/api/self'),api('/api/remotes')]);
+      if(s){ selfStatus.branch=s.branch;selfStatus.remotes_count=s.remotes_count;selfStatus.changed_files=s.changed_files; }
+      if(r) remotes.value = r.remotes;
+    }
+
+    async function loadPolicies(){
+      const res = await api('/api/policies');
+      if(res) policies.value = res.policies;
+    }
+
+    async function addProject(){
+      await api('/api/projects',{method:'POST',body:JSON.stringify({...newProj})});
+      showAddProj.value=false;
+      Object.assign(newProj,{name:'',path:'',remote_url:'',branch:'main'});
+      await loadProjects();
+      await loadDash();
+      toast('✅ 项目已添加');
+    }
+
+    async function delProject(p){
+      if(!confirm('删除项目: '+p.name+'?')) return;
+      await api('/api/projects/'+p.id,{method:'DELETE'});
+      await loadProjects();
+      await loadDash();
+      toast('已删除');
+    }
+
+    async function pushProject(p){
+      const res = await api('/api/git/push',{method:'POST',body:JSON.stringify({project_id:p.id,message:'manual push'})});
+      pushResult.value = res;
+      await loadLogs();
+    }
+
+    async function addRemote(){
+      await api('/api/remotes',{method:'POST',body:JSON.stringify({...newRemote})});
+      showAddRemote.value=false;
+      Object.assign(newRemote,{name:'',url:''});
+      await loadSelf();
+      toast('✅ 远程已添加');
+    }
+
+    async function delRemote(r){
+      await api('/api/remotes/'+r.id,{method:'DELETE'});
+      await loadSelf();
+      toast('已删除');
+    }
+
+    async function pushAll(){
+      const res = await api('/api/self/push-all',{method:'POST'});
+      pushResult.value = {ok:res.results.every(r=>r.ok), output:JSON.stringify(res.results,null,2)};
+      await loadLogs();
+    }
+
+    async function addPolicy(){
+      const conds = [];
+      if(newPolicy.condType==='branch_match') conds.push({type:'branch_match',pattern:newPolicy.pattern});
+      else if(newPolicy.condType==='force_push') conds.push({type:'force_push',value:true});
+      else if(newPolicy.condType==='commit_count_max') conds.push({type:'commit_count_max',max:parseInt(newPolicy.max)});
+      await api('/api/policies',{method:'POST',body:JSON.stringify({name:newPolicy.name,conditions:conds,action:newPolicy.action})});
+      showAddPolicy.value=false;
+      Object.assign(newPolicy,{name:'',condType:'branch_match',pattern:'^main$',max:10,action:'block'});
+      await loadPolicies();
+      toast('✅ 策略已添加');
+    }
+
+    async function togglePolicy(p){
+      await api('/api/policies/'+p.id,{method:'PUT'});
+      p.enabled = !p.enabled;
+    }
+
+    async function delPolicy(p){
+      await api('/api/policies/'+p.id,{method:'DELETE'});
+      await loadPolicies();
+      toast('已删除');
+    }
+
+    onMounted(async()=>{
+      if(token.value) await loadDash();
+    });
+
+    return {token,loginUser,loginPwd,loginErr,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,
+      showAddProj,showAddRemote,showAddPolicy,pushResult,newProj,newRemote,newPolicy,
+      doLogin,logout,loadDash,loadProjects,loadLogs,loadSelf,loadPolicies,
+      addProject,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
+  }
+});
+app.mount('#app');
+</script>
+</body>
+</html>
