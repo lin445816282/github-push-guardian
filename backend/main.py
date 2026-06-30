@@ -249,6 +249,37 @@ async def del_project(pid: int, user: dict = Depends(get_current_user), request:
               ip=request.client.host if request else None)
     return {"ok": True}
 
+class ProjectUpdate(BaseModel):
+    name: str = None
+    path: str = None
+    remote_url: str = None
+    branch: str = None
+    type: str = None
+
+@app.put("/api/projects/{pid}")
+async def update_project(pid: int, p: ProjectUpdate, user: dict = Depends(get_current_user), request: Request = None):
+    conn = get_db()
+    existing = conn.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(404, "项目不存在")
+    sets = []
+    vals = []
+    for k in ["name", "path", "remote_url", "branch", "type"]:
+        v = getattr(p, k, None)
+        if v is not None:
+            sets.append(f"{k}=?")
+            vals.append(v)
+    if sets:
+        vals.append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        sets.append("updated_at=?")
+        conn.execute(f"UPDATE projects SET {','.join(sets)} WHERE id=?", vals + [pid])
+        conn.commit()
+    conn.close()
+    audit_log("project_update", user_id=int(user["sub"]), resource_type="project", resource_id=str(pid),
+              ip=request.client.host if request else None)
+    return {"ok": True}
+
 # ── API: Git Push ───────────────────────────
 class PushReq(BaseModel):
     project_id: int

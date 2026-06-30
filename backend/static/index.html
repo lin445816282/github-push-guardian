@@ -164,7 +164,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
           <div class="proj-path">{{p.remote_url}}</div>
         </div>
         <div class="proj-actions">
-          <button class="action-btn btn-push" @click="pushProject(p)">⬆️ 推送</button>
+          <button class="action-btn" style="background:var(--warn);color:#000" @click="openEditProj(p)">✏️</button>
+          <button class="action-btn btn-push" @click="pushProject(p)">⬆️</button>
           <button class="action-btn btn-del" @click="delProject(p)">🗑️</button>
         </div>
       </div>
@@ -253,6 +254,24 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     </div>
   </div>
 
+  <div class="overlay" v-if="showEditProj" @click.self="showEditProj=false">
+    <div class="modal">
+      <h3>✏️ 编辑项目</h3>
+      <label>项目名称</label>
+      <input v-model="editProj.name" placeholder="项目名称">
+      <label>本地路径</label>
+      <input v-model="editProj.path" placeholder="/home/xiaolin/projects/xxx">
+      <label>Git 远程地址</label>
+      <input v-model="editProj.remote_url" placeholder="git@github.com:user/repo.git">
+      <label>分支</label>
+      <input v-model="editProj.branch" placeholder="main">
+      <div class="modal-actions">
+        <button class="btn-cancel" @click="showEditProj=false">取消</button>
+        <button class="btn-primary" @click="saveProj">保存修改</button>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay" v-if="showAddRemote" @click.self="showAddRemote=false">
     <div class="modal">
       <h3>🌐 添加远程仓库</h3>
@@ -333,10 +352,13 @@ const app = createApp({
 
     // Modals
     const showAddProj = ref(false);
+    const showEditProj = ref(false);
+    const editingId = ref(null);
     const showAddRemote = ref(false);
     const showAddPolicy = ref(false);
     const pushResult = ref(null);
     const newProj = reactive({name:'',path:'',remote_url:'',branch:'main'});
+    const editProj = reactive({name:'',path:'',remote_url:'',branch:'main'});
     const newRemote = reactive({name:'',url:''});
     const newPolicy = reactive({name:'',condType:'branch_match',pattern:'^main$',max:10,action:'block'});
 
@@ -401,6 +423,21 @@ const app = createApp({
       toast('✅ 项目已添加');
     }
 
+    function openEditProj(p){
+      editingId.value = p.id;
+      Object.assign(editProj,{name:p.name,path:p.path||'',remote_url:p.remote_url,branch:p.branch||'main'});
+      showEditProj.value = true;
+    }
+
+    async function saveProj(){
+      await api('/api/projects/'+editingId.value,{method:'PUT',body:JSON.stringify({...editProj})});
+      showEditProj.value = false;
+      editingId.value = null;
+      await loadProjects();
+      await loadDash();
+      toast('✅ 项目已更新');
+    }
+
     async function delProject(p){
       if(!confirm('删除项目: '+p.name+'?')) return;
       await api('/api/projects/'+p.id,{method:'DELETE'});
@@ -463,9 +500,9 @@ const app = createApp({
     });
 
     return {token,loginUser,loginPwd,loginErr,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,
-      showAddProj,showAddRemote,showAddPolicy,pushResult,newProj,newRemote,newPolicy,
+      showAddProj,showEditProj,editingId,showAddRemote,showAddPolicy,pushResult,newProj,editProj,newRemote,newPolicy,
       doLogin,logout,loadDash,loadProjects,loadLogs,loadSelf,loadPolicies,
-      addProject,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
+      addProject,openEditProj,saveProj,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
   }
 });
 app.mount('#app');
