@@ -123,6 +123,42 @@ def init_db():
 
 init_db()
 
+# ── Git Helper ──────────────────────────────
+import subprocess, shlex
+
+def _git(cmd: str, cwd: str, timeout: int = 30):
+    """Run git command, return (output, error, exit_code)"""
+    try:
+        r = subprocess.run(
+            ["git"] + shlex.split(cmd),
+            cwd=cwd, capture_output=True, text=True, timeout=timeout,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+        )
+        return r.stdout.strip(), r.stderr.strip(), r.returncode
+    except subprocess.TimeoutExpired:
+        return "", "timeout", -1
+    except FileNotFoundError:
+        return "", "git not found", -1
+
+def check_git_status(path: str) -> dict:
+    """Get detailed git status for a project"""
+    if not os.path.isdir(os.path.join(path, ".git")):
+        return {"clean": True, "total_changes": 0, "modified": [], "untracked": [], "error": "not a git repo"}
+    out, err, code = _git("status --porcelain", path)
+    if code != 0:
+        return {"error": err or "failed", "clean": False, "total_changes": 0, "modified": [], "untracked": []}
+    files = out.split("\n") if out else []
+    modified = [f[3:] for f in files if f.startswith(" M") or f.startswith("M ")]
+    untracked = [f[3:] for f in files if f.startswith("??")]
+    staged = [f[3:] for f in files if f.startswith("M ") or f.startswith("A ")]
+    return {
+        "clean": len(files) == 0,
+        "total_changes": len(files),
+        "modified": modified,
+        "untracked": untracked,
+        "staged": staged,
+    }
+
 # ── Rate Limiter ────────────────────────────
 _rate_store: dict = {}
 
@@ -212,6 +248,14 @@ async def list_projects():
     conn = get_db()
     rows = [dict(r) for r in conn.execute("SELECT * FROM projects ORDER BY updated_at DESC").fetchall()]
     conn.close()
+    for p in rows:
+        path = p.get("path", "")
+        p["exists"] = os.path.isdir(path)
+        p["is_git"] = os.path.isdir(os.path.join(path, ".git")) if p["exists"] else False
+        if p["exists"] and p["is_git"]:
+            p["status"] = check_git_status(path)
+        else:
+            p["status"] = {"clean": True, "total_changes": 0, "modified": [], "untracked": []}
     return {"projects": rows}
 
 class ProjectCreate(BaseModel):
@@ -279,6 +323,36 @@ async def update_project(pid: int, p: ProjectUpdate, user: dict = Depends(get_cu
     audit_log("project_update", user_id=int(user["sub"]), resource_type="project", resource_id=str(pid),
               ip=request.client.host if request else None)
     return {"ok": True}
+
+# ── API: Git Status & Pull ──────────────────
+@app.get("/api/projects/{pid}/status")
+async def project_status(pid: int):
+    conn = get_db()
+    p = conn.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone()
+    conn.close()
+    if not p:
+        raise HTTPException(404, "项目不存在")
+    return check_git_status(p["path"])
+
+@app.post("/api/projects/{pid}/pull")
+async def pull_project(pid: int, user: dict = Depends(get_current_user)):
+    conn = get_db()
+    p = conn.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone()
+    conn.close()
+    if not p:
+        raise HTTPException(404, "项目不存在")
+    out, err, code = _git(f"pull origin {p['branch']}", p["path"])
+    status = "ok" if code == 0 else "error"
+    detail = (out if code == 0 else err)[:2000]
+    # Log
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO push_logs (project_id, action, message, status, detail, created_at) VALUES (?,?,?,?,?,?)",
+        (pid, "pull", f"从 {p['branch']} 拉取", status, detail, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": code == 0, "output": detail}
 
 # ── API: Git Push ───────────────────────────
 class PushReq(BaseModel):

@@ -92,6 +92,19 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .policy-toggle.on{background:var(--success)}
 .policy-toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s}
 .policy-toggle.on::after{left:23px}
+
+/* Git panel (from push-manager) */
+.git-panel{background:rgba(0,0,0,.15);border-radius:8px;padding:10px;margin-top:8px}
+.git-stats{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin-bottom:6px}
+.git-stats .stat{padding:2px 8px;border-radius:8px}
+.git-stats .modified{background:rgba(245,158,11,.2);color:var(--warn)}
+.git-stats .untracked{background:rgba(59,130,246,.2);color:#60a5fa}
+.git-stats .clean{background:rgba(34,197,94,.2);color:var(--success)}
+.git-file-list{max-height:120px;overflow-y:auto;margin-bottom:8px}
+.git-file{font-size:10px;padding:2px 6px;border-radius:4px;margin:2px 0}
+.modified-file{background:rgba(245,158,11,.1);color:var(--warn)}
+.untracked-file{background:rgba(59,130,246,.1);color:#60a5fa}
+.git-actions{display:flex;gap:6px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -158,15 +171,56 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
         <button class="action-btn btn-push" @click="showAddProj=true">➕ 添加项目</button>
       </div>
       <div v-if="projects.length===0" class="empty">暂无项目</div>
-      <div v-for="p in projects" :key="p.id" class="proj-item">
-        <div class="proj-info">
-          <div class="proj-name">{{p.name}}</div>
-          <div class="proj-path">{{p.remote_url}}</div>
+      <div v-for="p in projects" :key="p.id" class="proj-item" style="flex-direction:column;align-items:stretch">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="proj-info" @click="toggleExpand(p)" style="cursor:pointer">
+            <div class="proj-name">
+              {{p.name}}
+              <span v-if="p.status && !p.status.clean" style="color:var(--warn);font-size:11px">· {{p.status.total_changes}}变更</span>
+            </div>
+            <div class="proj-path">{{p.remote_url}}</div>
+          </div>
+          <div class="proj-actions">
+            <span @click="toggleExpand(p)" style="cursor:pointer;padding:4px 8px;font-size:14px;color:var(--text)">
+              {{expandedId===p.id?'▲':'▼'}}
+            </span>
+            <button class="action-btn" style="background:var(--warn);color:#000" @click="openEditProj(p)">✏️</button>
+            <button class="action-btn btn-push" @click="pushProject(p)">⬆️</button>
+            <button class="action-btn btn-del" @click="delProject(p)">🗑️</button>
+          </div>
         </div>
-        <div class="proj-actions">
-          <button class="action-btn" style="background:var(--warn);color:#000" @click="openEditProj(p)">✏️</button>
-          <button class="action-btn btn-push" @click="pushProject(p)">⬆️</button>
-          <button class="action-btn btn-del" @click="delProject(p)">🗑️</button>
+        <!-- Git status panel -->
+        <div v-if="expandedId===p.id" class="git-panel">
+          <div v-if="gitLoading[p.id]" style="text-align:center;padding:8px;color:var(--text);font-size:12px">加载中...</div>
+          <template v-else-if="p.status">
+            <div class="git-stats">
+              <span v-if="p.status.modified?.length" class="stat modified">
+                ✏️ 修改 {{p.status.modified.length}}
+              </span>
+              <span v-if="p.status.untracked?.length" class="stat untracked">
+                ➕ 未跟踪 {{p.status.untracked.length}}
+              </span>
+              <span v-if="p.status.clean" class="stat clean">
+                ✅ 干净
+              </span>
+            </div>
+            <div class="git-file-list" v-if="p.status.modified?.length || p.status.untracked?.length">
+              <div v-for="f in p.status.modified" :key="'m-'+f" class="git-file modified-file">
+                ✏️ {{f}}
+              </div>
+              <div v-for="f in p.status.untracked" :key="'u-'+f" class="git-file untracked-file">
+                ➕ {{f}}
+              </div>
+            </div>
+          </template>
+          <div class="git-actions">
+            <button class="action-btn btn-push" style="font-size:11px" :disabled="actionLoading[p.id]" @click="pullProject(p)">
+              {{actionLoading[p.id]==='pull'?'...':'⬇️ Pull'}}
+            </button>
+            <button class="action-btn" style="background:var(--warn);color:#000;font-size:11px" :disabled="actionLoading[p.id]" @click="pushProject(p)">
+              {{actionLoading[p.id]==='push'?'...':'⬆️ Push'}}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -362,6 +416,11 @@ const app = createApp({
     const newRemote = reactive({name:'',url:''});
     const newPolicy = reactive({name:'',condType:'branch_match',pattern:'^main$',max:10,action:'block'});
 
+    // Expand / git state
+    const expandedId = ref(null);
+    const gitLoading = reactive({});
+    const actionLoading = reactive({});
+
     function toast(msg){ toastMsg.value=msg; setTimeout(()=>toastMsg.value='',2000); }
 
     async function api(path, opts={}){
@@ -438,6 +497,36 @@ const app = createApp({
       toast('✅ 项目已更新');
     }
 
+    // ── Expand / Git ─────────────────────────
+    async function toggleExpand(p){
+      if (expandedId.value === p.id) {
+        expandedId.value = null;
+        return;
+      }
+      expandedId.value = p.id;
+      // Fetch fresh status
+      gitLoading[p.id] = true;
+      try {
+        const res = await api('/api/projects/'+p.id+'/status');
+        if (res) {
+          // Update the project's status in the array
+          const idx = projects.value.findIndex(x=>x.id===p.id);
+          if (idx>=0) projects.value[idx].status = res;
+        }
+      } catch(e){}
+      gitLoading[p.id] = false;
+    }
+
+    async function pullProject(p){
+      actionLoading[p.id] = 'pull';
+      try {
+        const res = await api('/api/projects/'+p.id+'/pull',{method:'POST'});
+        toast(res?.ok ? '✅ Pull 成功' : '❌ Pull 失败');
+      } catch(e){ toast('Pull 异常'); }
+      actionLoading[p.id] = null;
+      await loadProjects();
+    }
+
     async function delProject(p){
       if(!confirm('删除项目: '+p.name+'?')) return;
       await api('/api/projects/'+p.id,{method:'DELETE'});
@@ -501,8 +590,9 @@ const app = createApp({
 
     return {token,loginUser,loginPwd,loginErr,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,
       showAddProj,showEditProj,editingId,showAddRemote,showAddPolicy,pushResult,newProj,editProj,newRemote,newPolicy,
+      expandedId,gitLoading,actionLoading,
       doLogin,logout,loadDash,loadProjects,loadLogs,loadSelf,loadPolicies,
-      addProject,openEditProj,saveProj,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
+      addProject,openEditProj,saveProj,toggleExpand,pullProject,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
   }
 });
 app.mount('#app');
