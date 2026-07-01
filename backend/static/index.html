@@ -6,90 +6,215 @@
 <title>推送管理器 · ct256.cn</title>
 <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/vant@4/lib/index.css">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
 :root {
-  --bg: #0a1628; --card: #112240; --border: #1e3a5f; --text: #8899b0;
-  --primary: #4da6ff; --danger: #ef4444; --success: #22c55e; --warn: #f59e0b;
-  --radius: 12px;
+  --bg1: #f0e6d3; --paper: #faf6f0; --ink: #3b2210; --accent: #8b4513;
+  --lightink: #a09080; --seal: #c03020; --gold: #c9a84c;
+  --success: #2d8a4e; --warn: #d4a017; --danger: #c03020;
+  --radius-seal: 4px 10px 4px 10px;
+  --ease-brush: cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-paper: 0 2px 8px rgba(59,50,44,0.08);
+  --shadow-seal: 0 4px 12px rgba(59,50,44,0.12);
+  --shadow-ink: 0 8px 24px rgba(59,50,44,0.18);
+}
+[data-theme="dark"] {
+  --bg1: #12151c; --paper: #1a1e27; --ink: #d4c8b8; --accent: #c9a84c;
+  --lightink: #7a7568; --seal: #d4a84c; --gold: #c9a84c;
+  --success: #3cb371; --warn: #e2b040; --danger: #e05555;
+  --shadow-paper: 0 2px 8px rgba(0,0,0,0.2);
+  --shadow-seal: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-ink: 0 8px 24px rgba(0,0,0,0.4);
+}
+[data-theme="ambiance"] {
+  /* inline style 动态设置，此处为回退 */
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
-#app{max-width:600px;margin:0 auto;padding:0 0 80px}
+body{
+  font-family: 'Noto Serif SC', serif;
+  background: var(--bg1);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background .6s var(--ease-brush), color .6s var(--ease-brush);
+}
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 600px 400px at 80% 20%, rgba(139,69,19,.06), transparent),
+              radial-gradient(ellipse 400px 500px at 20% 70%, rgba(201,168,76,.05), transparent),
+              radial-gradient(ellipse 300px 300px at 60% 40%, rgba(192,48,32,.04), transparent);
+}
+#app{position:relative;z-index:1;max-width:600px;margin:0 auto;padding:0 0 80px}
 
 /* Login */
 .login-box{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-.login-card{background:var(--card);border-radius:16px;padding:32px 24px;width:100%;max-width:340px;text-align:center}
-.login-card h2{color:#fff;margin-bottom:8px;font-size:22px}
-.login-card .sub{font-size:13px;color:var(--text);margin-bottom:20px}
-.login-card input{width:100%;padding:12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:#fff;font-size:15px;margin-bottom:12px;outline:none}
-.login-card button{width:100%;padding:12px;border-radius:var(--radius);background:var(--primary);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer}
+.login-card{
+  background: var(--paper); border-radius: var(--radius-seal);
+  box-shadow: var(--shadow-ink); padding: 40px 28px;
+  width: 100%; max-width: 340px; text-align: center;
+}
+.login-card h2{color:var(--ink);margin-bottom:4px;font-size:24px;font-weight:700;letter-spacing:2px}
+.login-card .sub{font-size:13px;color:var(--lightink);margin-bottom:24px}
+.login-card input{
+  width:100%;padding:12px;border-radius:var(--radius-seal);
+  border:2px solid rgba(139,90,43,.15);background:var(--bg1);
+  color:var(--ink);font-size:15px;margin-bottom:12px;outline:none;
+  font-family: 'Noto Serif SC', serif;
+  transition: border .2s var(--ease-brush);
+}
+.login-card input:focus{border-color:var(--accent)}
+.login-card button{
+  width:100%;padding:12px;border-radius:var(--radius-seal);
+  background:var(--ink);color:var(--bg1);border:none;
+  font-size:15px;font-weight:600;cursor:pointer;
+  font-family: 'Noto Serif SC', serif; letter-spacing: 2px;
+  transition: all .2s var(--ease-brush);
+}
+.login-card button:hover{background:var(--accent)}
 
 /* Header */
-.header{background:var(--card);padding:12px 16px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
-.header h1{font-size:18px;color:#fff}
+.header{
+  background: var(--paper); padding: 14px 16px;
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 2px solid rgba(139,90,43,.08);
+  box-shadow: 0 2px 8px rgba(59,50,44,.06);
+}
+.header h1{font-size:18px;color:var(--ink);font-weight:700;letter-spacing:1px}
 .header-actions{display:flex;gap:8px}
-.icon-btn{width:34px;height:34px;border-radius:50%;background:var(--bg);color:var(--text);border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.icon-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--bg1);color:var(--lightink);
+  border:1px solid rgba(139,90,43,.12);font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition: all .2s var(--ease-brush);
+}
+.icon-btn:hover{color:var(--ink);border-color:var(--accent)}
 
 /* Tabs */
-.tabs{display:flex;gap:4px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto}
-.tab{padding:8px 16px;border-radius:20px;font-size:13px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;white-space:nowrap;flex-shrink:0}
-.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.tabs{
+  display: flex; gap: 6px; padding: 10px 12px;
+  background: var(--paper); border-bottom: 2px solid rgba(139,90,43,.08);
+  overflow-x: auto;
+}
+.tab{
+  padding: 8px 16px; border-radius: 20px; font-size: 13px;
+  border: 1px solid rgba(139,90,43,.12); background: var(--bg1);
+  color: var(--lightink); cursor: pointer; white-space: nowrap;
+  flex-shrink: 0; font-family: 'Noto Serif SC', serif;
+  transition: all .2s var(--ease-brush);
+}
+.tab.active{background:var(--ink);color:var(--bg1);border-color:var(--ink)}
 
 /* Cards */
-.card{background:var(--card);border-radius:var(--radius);padding:16px;margin:8px 12px}
+.card{background:var(--paper);border-radius:var(--radius-seal);padding:16px;margin:8px 12px;box-shadow:var(--shadow-paper)}
 .card-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.card-title{font-size:14px;font-weight:600;color:#fff}
-.card-sub{font-size:12px;color:var(--text);margin-top:4px}
+.card-title{font-size:14px;font-weight:600;color:var(--ink)}
+.card-sub{font-size:12px;color:var(--lightink);margin-top:4px}
 
 /* Stats */
 .stats{display:flex;gap:8px;padding:8px 12px}
-.stat{flex:1;background:var(--card);border-radius:var(--radius);padding:14px;text-align:center}
-.stat-num{font-size:24px;font-weight:700;color:#fff}
-.stat-label{font-size:11px;color:var(--text);margin-top:4px}
+.stat{
+  flex:1;background:var(--paper);border-radius:var(--radius-seal);
+  padding:16px;text-align:center;box-shadow:var(--shadow-paper);
+  border: 1px solid rgba(139,90,43,.06);
+}
+.stat-num{font-size:26px;font-weight:700;color:var(--ink)}
+.stat-label{font-size:11px;color:var(--lightink);margin-top:4px;letter-spacing:1px}
 
 /* Project item */
-.proj-item{background:var(--card);border-radius:var(--radius);padding:14px;margin:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.proj-item{
+  background:var(--paper);border-radius:var(--radius-seal);
+  padding:14px;margin:8px 12px;box-shadow:var(--shadow-paper);
+  display:flex;align-items:center;justify-content:space-between;
+  border-left: 3px solid transparent;
+  transition: border-color .2s var(--ease-brush);
+}
+.proj-item:hover{border-left-color:var(--accent)}
 .proj-info{flex:1;min-width:0}
-.proj-name{font-size:14px;color:#fff;font-weight:500}
-.proj-path{font-size:11px;color:var(--text);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.proj-tag{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--border);color:var(--text)}
+.proj-name{font-size:14px;color:var(--ink);font-weight:600}
+.proj-path{font-size:11px;color:var(--lightink);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proj-tag{font-size:10px;padding:2px 8px;border-radius:8px;background:rgba(139,69,19,.08);color:var(--accent)}
 .proj-actions{display:flex;gap:6px}
-.action-btn{padding:6px 12px;border-radius:16px;font-size:12px;border:none;cursor:pointer;font-weight:500}
-.btn-push{background:var(--primary);color:#fff}
-.btn-del{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.action-btn{
+  padding: 6px 14px; border-radius: var(--radius-seal);
+  font-size: 12px; border: none; cursor: pointer;
+  font-family: 'Noto Serif SC', serif; font-weight: 500;
+  transition: all .2s var(--ease-brush);
+}
+.btn-push{background:var(--ink);color:var(--bg1)}
+.btn-push:hover{background:var(--accent)}
+.btn-del{background:transparent;color:var(--danger);border:1px solid rgba(192,48,32,.3)}
+.btn-del:hover{background:rgba(192,48,32,.06)}
 
 /* Log item */
-.log-item{background:var(--card);border-radius:var(--radius);padding:12px;margin:6px 12px}
-.log-action{font-size:13px;color:#fff}
-.log-detail{font-size:11px;color:var(--text);margin-top:4px}
-.log-time{font-size:10px;color:var(--text);margin-top:4px}
+.log-item{
+  background:var(--paper);border-radius:var(--radius-seal);
+  padding:12px;margin:6px 12px;box-shadow:var(--shadow-paper)
+}
+.log-action{font-size:13px;color:var(--ink);font-weight:500}
+.log-detail{font-size:11px;color:var(--lightink);margin-top:4px}
+.log-time{font-size:10px;color:var(--lightink);margin-top:4px}
 .log-badge{font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px}
-.log-ok{background:rgba(34,197,94,.2);color:var(--success)}
-.log-err{background:rgba(239,68,68,.2);color:var(--danger)}
+.log-ok{background:rgba(45,138,78,.1);color:var(--success)}
+.log-err{background:rgba(192,48,32,.1);color:var(--danger)}
 
 /* Empty */
-.empty{text-align:center;padding:40px 20px;color:var(--text);font-size:14px}
+.empty{text-align:center;padding:40px 20px;color:var(--lightink);font-size:14px}
 
 /* Modal overlay */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
-.modal{background:var(--card);border-radius:16px;width:100%;max-width:380px;padding:20px;max-height:80vh;overflow-y:auto}
-.modal h3{color:#fff;font-size:16px;margin-bottom:16px}
-.modal input,.modal select{width:100%;padding:10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:#fff;font-size:14px;margin-bottom:10px;outline:none}
-.modal label{font-size:12px;color:var(--text);display:block;margin-bottom:4px}
+.overlay{
+  position:fixed;inset:0;background:rgba(59,50,44,.5);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  backdrop-filter: blur(4px);
+}
+.modal{
+  background:var(--paper);border-radius:var(--radius-seal);
+  width:100%;max-width:380px;padding:24px;
+  max-height:80vh;overflow-y:auto;
+  box-shadow:var(--shadow-ink);
+}
+.modal h3{color:var(--ink);font-size:17px;margin-bottom:16px;font-weight:700}
+.modal input,.modal select{
+  width:100%;padding:10px;border-radius:var(--radius-seal);
+  border:2px solid rgba(139,90,43,.12);background:var(--bg1);
+  color:var(--ink);font-size:14px;margin-bottom:10px;outline:none;
+  font-family: 'Noto Serif SC', serif;
+  transition: border .2s var(--ease-brush);
+}
+.modal input:focus,.modal select:focus{border-color:var(--accent)}
+.modal label{font-size:12px;color:var(--lightink);display:block;margin-bottom:4px;letter-spacing:.5px}
 .modal-actions{display:flex;gap:8px;margin-top:16px}
-.modal-actions button{flex:1;padding:10px;border-radius:var(--radius);border:none;font-size:14px;cursor:pointer}
-.btn-primary{background:var(--primary);color:#fff}
-.btn-cancel{background:var(--border);color:var(--text)}
+.modal-actions button{
+  flex:1;padding:10px;border-radius:var(--radius-seal);
+  border:none;font-size:14px;cursor:pointer;
+  font-family: 'Noto Serif SC', serif;
+  transition: all .2s var(--ease-brush);
+}
+.btn-primary{background:var(--ink);color:var(--bg1)}
+.btn-primary:hover{background:var(--accent)}
+.btn-cancel{
+  background:transparent;color:var(--lightink);
+  border:1px solid rgba(139,90,43,.12);
+}
+.btn-cancel:hover{color:var(--ink);border-color:var(--accent)}
 
 /* Toast */
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;animation:fadeIn .3s}
+.toast{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--bg1);
+  padding:10px 24px;border-radius:var(--radius-seal);
+  font-size:13px;z-index:200;animation:fadeIn .3s;
+  font-family: 'Noto Serif SC', serif; letter-spacing: 1px;
+}
 @keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* Policy */
-.policy-item{background:var(--card);border-radius:var(--radius);padding:14px;margin:8px 12px;display:flex;align-items:center;justify-content:space-between}
-.policy-name{font-size:14px;color:#fff}
-.policy-action{font-size:11px;padding:2px 8px;border-radius:8px;background:var(--border);color:var(--text)}
-.policy-toggle{width:44px;height:24px;border-radius:12px;background:var(--border);cursor:pointer;position:relative;transition:.2s;border:none}
+.policy-item{background:var(--paper);border-radius:var(--radius);padding:14px;margin:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.policy-name{font-size:14px;color:var(--bg1)}
+.policy-action{font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(139,90,43,.12);color:var(--lightink)}
+.policy-toggle{width:44px;height:24px;border-radius:12px;background:rgba(139,90,43,.12);cursor:pointer;position:relative;transition:.2s;border:none}
 .policy-toggle.on{background:var(--success)}
 .policy-toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s}
 .policy-toggle.on::after{left:23px}
@@ -127,6 +252,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div class="header">
       <h1>📡 推送管理器</h1>
       <div class="header-actions">
+        <button class="icon-btn" @click="toggleTheme" :title="themeLabel" style="font-size:14px">
+          {{themeIcon}}
+        </button>
         <button class="icon-btn" @click="logout">🚪</button>
       </div>
     </div>
@@ -150,18 +278,18 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
         <div class="card-title">📌 快捷操作</div>
         <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">
           <button class="action-btn btn-push" @click="tab='projects';loadProjects()">📦 管理项目</button>
-          <button class="action-btn" style="background:var(--border);color:var(--text)" @click="showAddProj=true">➕ 添加项目</button>
-          <button class="action-btn" style="background:var(--warn);color:#000" @click="tab='self';loadSelf()">⚡ 一键推送</button>
+          <button class="action-btn" style="background:rgba(139,90,43,.12);color:var(--lightink)" @click="showAddProj=true">➕ 添加项目</button>
+          <button class="action-btn" style="background:var(--gold);color:var(--ink)" @click="tab='self';loadSelf()">⚡ 一键推送</button>
         </div>
       </div>
       <div class="card" style="margin:8px 12px" v-if="recentLogs.length">
         <div class="card-title">🕐 最近操作</div>
-        <div v-for="l in recentLogs" :key="l.id" style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div v-for="l in recentLogs" :key="l.id" style="padding:8px 0;border-bottom:1px solid rgba(139,90,43,.12)">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:13px;color:#fff">{{l.message}}</span>
+            <span style="font-size:13px;color:var(--ink);font-weight:500">{{l.message}}</span>
             <span class="log-badge" :class="l.status==='ok'?'log-ok':'log-err'">{{l.status}}</span>
           </div>
-          <div style="font-size:10px;color:var(--text)">{{l.created_at}}</div>
+          <div style="font-size:10px;color:#8b6e5e">{{l.created_at}}</div>
         </div>
       </div>
     </div>
@@ -175,8 +303,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
           {{pushLoading?'推送中...':'⚡ 一键推送'}}
         </button>
       </div>
-      <div v-if="projects.length>0" style="display:flex;gap:12px;padding:6px 12px;font-size:12px;color:var(--text);background:var(--card);border-radius:8px;margin:0 12px 8px">
-        <span>📦 合计 <b style="color:var(--primary)">{{projects.length}}</b> 个项目</span>
+      <div v-if="projects.length>0" style="display:flex;gap:12px;padding:6px 12px;font-size:12px;color:var(--lightink);background:var(--paper);border-radius:var(--radius-seal);margin:0 12px 8px;box-shadow:var(--shadow-paper)">
+        <span>📦 合计 <b style="color:var(--ink)">{{projects.length}}</b> 个项目</span>
         <span v-if="pendingCount>0">⏳ 待推送 <b style="color:var(--warn)">{{pendingCount}}</b> 个</span>
         <span v-else style="color:var(--success)">✅ 全部已推送</span>
       </div>
@@ -191,17 +319,17 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
             <div class="proj-path">{{p.remote_url}}</div>
           </div>
           <div class="proj-actions">
-            <span @click="toggleExpand(p)" style="cursor:pointer;padding:4px 8px;font-size:14px;color:var(--text)">
+            <span @click="toggleExpand(p)" style="cursor:pointer;padding:4px 8px;font-size:14px;color:var(--lightink)">
               {{expandedId===p.id?'▲':'▼'}}
             </span>
-            <button class="action-btn" style="background:var(--warn);color:#000" @click="openEditProj(p)">✏️</button>
+            <button class="action-btn" style="background:var(--gold);color:var(--ink)" @click="openEditProj(p)">✏️</button>
             <button class="action-btn btn-push" @click="pushProject(p)">⬆️</button>
             <button class="action-btn btn-del" @click="delProject(p)">🗑️</button>
           </div>
         </div>
         <!-- Git status panel -->
         <div v-if="expandedId===p.id" class="git-panel">
-          <div v-if="gitLoading[p.id]" style="text-align:center;padding:8px;color:var(--text);font-size:12px">加载中...</div>
+          <div v-if="gitLoading[p.id]" style="text-align:center;padding:8px;color:var(--lightink);font-size:12px">加载中...</div>
           <template v-else-if="p.status">
             <div class="git-stats">
               <span v-if="p.status.modified?.length" class="stat modified">
@@ -227,7 +355,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
             <button class="action-btn btn-push" style="font-size:11px" :disabled="actionLoading[p.id]" @click="pullProject(p)">
               {{actionLoading[p.id]==='pull'?'...':'⬇️ Pull'}}
             </button>
-            <button class="action-btn" style="background:var(--warn);color:#000;font-size:11px" :disabled="actionLoading[p.id]" @click="pushProject(p)">
+            <button class="action-btn" style="background:var(--gold);color:var(--ink);font-size:11px" :disabled="actionLoading[p.id]" @click="pushProject(p)">
               {{actionLoading[p.id]==='push'?'...':'⬆️ Push'}}
             </button>
           </div>
@@ -240,8 +368,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
       <div class="card" style="margin:8px 12px">
         <div class="card-title">🛡️ 管理器仓库状态</div>
         <div style="margin-top:8px;font-size:13px">
-          <div>当前分支: <b style="color:#fff">{{selfStatus.branch}}</b></div>
-          <div>远程数: <b style="color:#fff">{{selfStatus.remotes_count}}</b></div>
+          <div>当前分支: <b style="color:var(--bg1)">{{selfStatus.branch}}</b></div>
+          <div>远程数: <b style="color:var(--bg1)">{{selfStatus.remotes_count}}</b></div>
           <div>变更文件: <b :style="{color:selfStatus.changed_files?'var(--warn)':'var(--success)'}">{{selfStatus.changed_files}} 个</b></div>
         </div>
         <div style="margin-top:12px">
@@ -259,7 +387,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
           <button class="action-btn btn-del" @click="delRemote(r)">🗑️</button>
         </div>
         <div style="margin-top:8px">
-          <button class="action-btn" style="background:var(--border);color:var(--text);width:100%;padding:10px" @click="showAddRemote=true">➕ 添加远程</button>
+          <button class="action-btn" style="background:rgba(139,90,43,.12);color:var(--lightink);width:100%;padding:10px" @click="showAddRemote=true">➕ 添加远程</button>
         </div>
       </div>
     </div>
@@ -288,7 +416,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
           <div class="policy-name">{{p.name}}</div>
           <div style="margin-top:4px">
             <span class="policy-action" v-for="c in p.conditions" :key="c.type" style="margin-right:4px">{{c.type}}</span>
-            <span class="policy-action" style="background:var(--warn);color:#000">{{p.action}}</span>
+            <span class="policy-action" style="background:var(--gold);color:var(--ink)">{{p.action}}</span>
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
@@ -381,7 +509,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <div class="overlay" v-if="pushResult" @click.self="pushResult=null">
     <div class="modal">
       <h3 :style="{color:pushResult.ok?'var(--success)':'var(--danger)'}">{{pushResult.ok?'✅ 推送成功':'❌ 推送失败'}}</h3>
-      <pre style="background:var(--bg);color:var(--text);padding:12px;border-radius:8px;font-size:11px;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all">{{pushResult.output}}</pre>
+      <pre style="background:var(--bg1);color:var(--lightink);padding:12px;border-radius:8px;font-size:11px;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all">{{pushResult.output}}</pre>
       <div class="modal-actions">
         <button class="btn-primary" style="width:100%" @click="pushResult=null">关闭</button>
       </div>
@@ -423,6 +551,40 @@ const app = createApp({
     const showAddPolicy = ref(false);
     const pushResult = ref(null);
     const pushLoading = ref(false);
+    // Theme: ink → dark → ambiance
+    const theme = ref(localStorage.getItem('guardian_theme')||'ink');
+    const themeIcon = computed(()=>({ink:'☀️',dark:'🌙',ambiance:'🌤️'}[theme.value]));
+    const themeLabel = computed(()=>({ink:'宣纸墨色',dark:'暗色深邃',ambiance:'时辰色'}[theme.value]));
+
+    function applyTheme(t){
+      document.documentElement.setAttribute('data-theme', t);
+      // 清除旧 inline 样式
+      ['--bg1','--bg2','--paper','--ink','--accent','--lightink'].forEach(v=>
+        document.documentElement.style.removeProperty(v));
+      if(t==='ambiance') applyAmbiance();
+    }
+    function applyAmbiance(){
+      const h = new Date().getHours();
+      let c;
+      if(h<6)       c={bg1:'#1a1228',bg2:'#16213e',ink:'#c8b8d8',accent:'#8b6fad'};     // 夜深·紫调
+      else if(h<9)  c={bg1:'#e8dcc8',bg2:'#d4c4a0',ink:'#4a3020',accent:'#c9a84c'};     // 晨起·金辉
+      else if(h<12) c={bg1:'#e0ecd8',bg2:'#c8d8c0',ink:'#2a4028',accent:'#5a8a4e'};     // 上午·青绿
+      else if(h<14) c={bg1:'#f0e6d3',bg2:'#d4a574',ink:'#3b2210',accent:'#8b4513'};     // 正午·原色
+      else if(h<18) c={bg1:'#f5eed8',bg2:'#e8d4a0',ink:'#403020',accent:'#b8860b'};     // 午后·暖棕
+      else if(h<21) c={bg1:'#ecdcc0',bg2:'#d4a574',ink:'#5a3020',accent:'#c06030'};     // 黄昏·赤霞
+      else          c={bg1:'#201810',bg2:'#1a1228',ink:'#d4c8b0',accent:'#8b6fad'};     // 入夜·暗暖
+      const r=document.documentElement;
+      Object.entries(c).forEach(([k,v])=>r.style.setProperty('--'+k,v));
+      r.style.setProperty('--lightink', c.ink+'99');
+      r.style.setProperty('--paper', c.bg1+'dd');
+    }
+    function toggleTheme(){
+      const modes=['ink','dark','ambiance'];
+      const i=modes.indexOf(theme.value);
+      theme.value=modes[(i+1)%3];
+      localStorage.setItem('guardian_theme',theme.value);
+      applyTheme(theme.value);
+    }
     const newProj = reactive({name:'',path:'',remote_url:'',branch:'main'});
     const editProj = reactive({name:'',path:'',remote_url:'',branch:'main'});
     const newRemote = reactive({name:'',url:''});
@@ -573,8 +735,9 @@ const app = createApp({
         const res = await api('/api/self/push-all',{method:'POST'});
         const ok = res.results.filter(r=>r.ok).length;
         const fail = res.results.filter(r=>!r.ok).length;
-        toast('✅ 推送完成: '+ok+'成功'+(fail>0?', '+fail+'失败':''));
-        pushResult.value = {ok:res.results.every(r=>r.ok), output:JSON.stringify(res.results,null,2)};
+        const allOk = fail===0;
+        toast((allOk?'✅':'⚠️')+' 推送完成: '+ok+'成功'+(fail>0?', '+fail+'失败':''));
+        pushResult.value = {ok:allOk, output:JSON.stringify(res.results,null,2), title:(allOk?'✅ 全部推送成功':'⚠️ '+ok+'成功, '+fail+'失败')};
         await loadLogs();
         await loadProjects();
       } catch(e) {
@@ -608,11 +771,13 @@ const app = createApp({
 
     onMounted(async()=>{
       if(token.value) await loadDash();
+      applyTheme(theme.value);
     });
 
     return {token,loginUser,loginPwd,loginErr,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,
       showAddProj,showEditProj,editingId,showAddRemote,showAddPolicy,pushResult,newProj,editProj,newRemote,newPolicy,
       expandedId,gitLoading,actionLoading,pendingCount,pushLoading,
+      theme,themeIcon,themeLabel,toggleTheme,
       doLogin,logout,loadDash,loadProjects,loadLogs,loadSelf,loadPolicies,
       addProject,openEditProj,saveProj,toggleExpand,pullProject,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
   }
