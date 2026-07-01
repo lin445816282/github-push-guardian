@@ -167,8 +167,14 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
     <!-- Projects -->
     <div v-if="tab==='projects'">
-      <div style="padding:8px 12px">
+      <div style="padding:8px 12px;display:flex;gap:6px">
         <button class="action-btn btn-push" @click="showAddProj=true">➕ 添加项目</button>
+        <button class="action-btn btn-push" @click="pushAll">⚡ 一键推送</button>
+      </div>
+      <div v-if="projects.length>0" style="display:flex;gap:12px;padding:6px 12px;font-size:12px;color:var(--text);background:var(--card);border-radius:8px;margin:0 12px 8px">
+        <span>📦 合计 <b style="color:var(--primary)">{{projects.length}}</b> 个项目</span>
+        <span v-if="pendingCount>0">⏳ 待推送 <b style="color:var(--warn)">{{pendingCount}}</b> 个</span>
+        <span v-else style="color:var(--success)">✅ 全部已推送</span>
       </div>
       <div v-if="projects.length===0" class="empty">暂无项目</div>
       <div v-for="p in projects" :key="p.id" class="proj-item" style="flex-direction:column;align-items:stretch">
@@ -402,6 +408,7 @@ const app = createApp({
     const remotes = ref([]);
     const policies = ref([]);
     const stats = reactive({projects:0,logs:0,audit:0});
+    const pendingCount = computed(()=>projects.value.filter(p=>p.status&&!p.status.clean).length);
     const selfStatus = reactive({branch:'?',remotes_count:0,changed_files:0});
 
     // Modals
@@ -590,7 +597,7 @@ const app = createApp({
 
     return {token,loginUser,loginPwd,loginErr,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,
       showAddProj,showEditProj,editingId,showAddRemote,showAddPolicy,pushResult,newProj,editProj,newRemote,newPolicy,
-      expandedId,gitLoading,actionLoading,
+      expandedId,gitLoading,actionLoading,pendingCount,
       doLogin,logout,loadDash,loadProjects,loadLogs,loadSelf,loadPolicies,
       addProject,openEditProj,saveProj,toggleExpand,pullProject,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
   }

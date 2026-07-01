@@ -577,13 +577,44 @@ async def self_status():
 @app.post("/api/self/push-all")
 async def push_all(user: dict = Depends(get_current_user)):
     import subprocess
-    remotes = get_db().execute("SELECT * FROM remotes").fetchall()
+    conn = get_db()
+    projects = conn.execute("SELECT * FROM projects").fetchall()
+    conn.close()
     results = []
-    for r in remotes:
-        cmd = f"cd {BASE_DIR.parent} && git push {r['name']} main 2>&1"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-        results.append({"name": r["name"], "ok": result.returncode == 0, "output": (result.stdout + result.stderr)[:500]})
-    get_db().close()
+    for p in projects:
+        path = p["path"]
+        if not os.path.isdir(path) or not os.path.isdir(os.path.join(path, ".git")):
+            results.append({"name": p["name"], "ok": False, "output": "目录不存在或无.git"})
+            continue
+        # check if there are changes to push
+        status = check_git_status(path)
+        if status["clean"]:
+            results.append({"name": p["name"], "ok": True, "output": "无变更，跳过"})
+            continue
+        branch = p["branch"] if p["branch"] else "main"
+        # add + commit + push
+        cmds = [
+            f"cd {path} && git add -A 2>&1",
+            f"cd {path} && git commit -m 'auto push by guardian' 2>&1",
+            f"cd {path} && git push origin {branch} 2>&1",
+        ]
+        ok = True
+        output = ""
+        for cmd in cmds:
+            r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+            output += r.stdout + r.stderr
+            if r.returncode != 0 and "nothing to commit" not in output:
+                ok = False
+                break
+        results.append({"name": p["name"], "ok": ok, "output": output[:500]})
+        # log
+        conn = get_db()
+        conn.execute(
+            "INSERT INTO push_logs (project_id, action, message, status, created_at) VALUES (?,?,?,?,datetime('now'))",
+            (p["id"], "push_all", f"一键推送到 {branch}", "ok" if ok else "error")
+        )
+        conn.commit()
+        conn.close()
     return {"results": results}
 
 # ── Static + SPA ────────────────────────────
