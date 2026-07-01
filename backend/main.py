@@ -37,6 +37,22 @@ app.add_middleware(
     expose_headers=["X-RateLimit-Remaining"],
 )
 
+# Strip /guardian prefix from incoming requests (tunnel routing)
+from starlette.middleware.base import BaseHTTPMiddleware
+class StripGuardianPrefix(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        if path.startswith("/guardian/"):
+            new_path = path[len("/guardian"):] or "/"
+            request.scope["path"] = new_path
+            request.scope["raw_path"] = new_path.encode()
+        elif path == "/guardian":
+            request.scope["path"] = "/"
+            request.scope["raw_path"] = b"/"
+        response = await call_next(request)
+        return response
+app.add_middleware(StripGuardianPrefix)
+
 # ── DB ──────────────────────────────────────
 def get_db():
     conn = sqlite3.connect(str(DB_PATH))
