@@ -83,6 +83,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 /* Toast */
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;animation:fadeIn .3s}
 @keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* Policy */
 .policy-item{background:var(--card);border-radius:var(--radius);padding:14px;margin:8px 12px;display:flex;align-items:center;justify-content:space-between}
@@ -169,7 +170,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <div v-if="tab==='projects'">
       <div style="padding:8px 12px;display:flex;gap:6px">
         <button class="action-btn btn-push" @click="showAddProj=true">➕ 添加项目</button>
-        <button class="action-btn btn-push" @click="pushAll">⚡ 一键推送</button>
+        <button class="action-btn btn-push" @click="pushAll" :disabled="pushLoading" :style="pushLoading?'opacity:.6;cursor:wait':''">
+          <span v-if="pushLoading" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top:2px solid #fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:4px;vertical-align:middle"></span>
+          {{pushLoading?'推送中...':'⚡ 一键推送'}}
+        </button>
       </div>
       <div v-if="projects.length>0" style="display:flex;gap:12px;padding:6px 12px;font-size:12px;color:var(--text);background:var(--card);border-radius:8px;margin:0 12px 8px">
         <span>📦 合计 <b style="color:var(--primary)">{{projects.length}}</b> 个项目</span>
@@ -418,6 +422,7 @@ const app = createApp({
     const showAddRemote = ref(false);
     const showAddPolicy = ref(false);
     const pushResult = ref(null);
+    const pushLoading = ref(false);
     const newProj = reactive({name:'',path:'',remote_url:'',branch:'main'});
     const editProj = reactive({name:'',path:'',remote_url:'',branch:'main'});
     const newRemote = reactive({name:'',url:''});
@@ -563,9 +568,19 @@ const app = createApp({
     }
 
     async function pushAll(){
-      const res = await api('/api/self/push-all',{method:'POST'});
-      pushResult.value = {ok:res.results.every(r=>r.ok), output:JSON.stringify(res.results,null,2)};
-      await loadLogs();
+      pushLoading.value = true;
+      try {
+        const res = await api('/api/self/push-all',{method:'POST'});
+        const ok = res.results.filter(r=>r.ok).length;
+        const fail = res.results.filter(r=>!r.ok).length;
+        toast('✅ 推送完成: '+ok+'成功'+(fail>0?', '+fail+'失败':''));
+        pushResult.value = {ok:res.results.every(r=>r.ok), output:JSON.stringify(res.results,null,2)};
+        await loadLogs();
+        await loadProjects();
+      } catch(e) {
+        toast('❌ 推送失败: '+e.message);
+      }
+      pushLoading.value = false;
     }
 
     async function addPolicy(){
@@ -597,7 +612,7 @@ const app = createApp({
 
     return {token,loginUser,loginPwd,loginErr,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,
       showAddProj,showEditProj,editingId,showAddRemote,showAddPolicy,pushResult,newProj,editProj,newRemote,newPolicy,
-      expandedId,gitLoading,actionLoading,pendingCount,
+      expandedId,gitLoading,actionLoading,pendingCount,pushLoading,
       doLogin,logout,loadDash,loadProjects,loadLogs,loadSelf,loadPolicies,
       addProject,openEditProj,saveProj,toggleExpand,pullProject,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
   }
