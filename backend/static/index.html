@@ -240,10 +240,14 @@ body::before {
     <div class="login-card">
       <h2>🔐 推送管理器</h2>
       <div class="sub">输入密码进入</div>
-      <input v-model="loginUser" placeholder="用户名" @keydown.enter="doLogin">
-      <input v-model="loginPwd" type="password" placeholder="密码" @keydown.enter="doLogin">
-      <button @click="doLogin">进入</button>
+      <input v-model="loginUser" placeholder="用户名" @keydown.enter="doLogin" :disabled="loginLoading">
+      <input v-model="loginPwd" type="password" placeholder="密码" @keydown.enter="doLogin" :disabled="loginLoading">
+      <button @click="doLogin" :disabled="loginLoading" :style="loginLoading?'opacity:.7;cursor:wait;pointer-events:none':''">
+        <span v-if="loginLoading" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top:2px solid #fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px"></span>
+        {{loginLoading?'验证中...':'进入'}}
+      </button>
       <div v-if="loginErr" style="color:var(--danger);font-size:12px;margin-top:8px">{{loginErr}}</div>
+      <div v-if="loginOk" style="color:var(--success);font-size:12px;margin-top:8px">✅ {{loginOk}}</div>
     </div>
   </div>
 
@@ -530,6 +534,8 @@ const app = createApp({
     const loginUser = ref('admin');
     const loginPwd = ref('');
     const loginErr = ref('');
+    const loginOk = ref('');
+    const loginLoading = ref(false);
     const toastMsg = ref('');
     const tab = ref('dash');
 
@@ -612,12 +618,23 @@ const app = createApp({
     }
 
     async function doLogin(){
+      if(loginLoading.value) return;
+      loginLoading.value = true;
       loginErr.value='';
+      loginOk.value='';
       const res = await api('/api/auth/login',{method:'POST',body:JSON.stringify({username:loginUser.value,password:loginPwd.value})});
-      if(!res||!res.token){ loginErr.value='密码错误';return; }
+      if(!res||!res.token){
+        loginErr.value='密码错误';
+        loginLoading.value = false;
+        return;
+      }
       token.value=res.token;
       localStorage.setItem('guardian_token',res.token);
-      await loadDash();
+      loginOk.value='登录成功，正在进入...';
+      setTimeout(async()=>{
+        await loadDash();
+        loginLoading.value = false;
+      }, 400);
     }
 
     function logout(){ token.value='';localStorage.removeItem('guardian_token');tab.value='dash'; }
@@ -804,7 +821,7 @@ const app = createApp({
       }
     });
 
-    return {token,loginUser,loginPwd,loginErr,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,
+    return {token,loginUser,loginPwd,loginErr,loginOk,loginLoading,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,
       showAddProj,showEditProj,editingId,showAddRemote,showAddPolicy,pushResult,newProj,editProj,newRemote,newPolicy,
       expandedId,gitLoading,actionLoading,pendingCount,pushLoading,
       theme,themeIcon,themeLabel,toggleTheme,
