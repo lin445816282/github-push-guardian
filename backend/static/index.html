@@ -522,7 +522,7 @@ body::before {
 
 <script src="https://fastly.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
 <script>
-const {createApp,ref,reactive,onMounted,computed} = Vue;
+const {createApp,ref,reactive,onMounted,computed,watch} = Vue;
 const app = createApp({
   setup(){
     const API = window.location.pathname.startsWith('/guardian') ? '/guardian' : '';
@@ -598,10 +598,16 @@ const app = createApp({
     function toast(msg){ toastMsg.value=msg; setTimeout(()=>toastMsg.value='',2000); }
 
     async function api(path, opts={}){
+      // 如果 token 已被清除，不发起请求（避免批量 401）
+      if(!token.value && path!=='/api/auth/login') return null;
       const headers={'Content-Type':'application/json'};
       if(token.value) headers['Authorization']='Bearer '+token.value;
       const res = await fetch(API+path,{headers,...opts});
-      if(res.status===401){ token.value='';localStorage.removeItem('guardian_token');return null; }
+      if(res.status===401){
+        token.value='';
+        localStorage.removeItem('guardian_token');
+        return null;
+      }
       return res.json();
     }
 
@@ -770,8 +776,32 @@ const app = createApp({
     }
 
     onMounted(async()=>{
-      if(token.value) await loadDash();
+      // 先验证 token 有效性，无效则直接清掉不加载数据
+      if(token.value){
+        const me = await fetch(API+'/api/auth/me',{
+          headers:{'Authorization':'Bearer '+token.value}
+        }).then(r=>r.ok?r.json():null).catch(()=>null);
+        if(!me||!me.user){
+          token.value='';
+          localStorage.removeItem('guardian_token');
+        } else {
+          await loadDash();
+        }
+      }
       applyTheme(theme.value);
+    });
+
+    // 监听 token 清除：立即清空所有后台数据
+    watch(token, (v) => {
+      if (!v) {
+        projects.value = [];
+        logs.value = [];
+        recentLogs.value = [];
+        remotes.value = [];
+        policies.value = [];
+        Object.assign(stats, { projects: 0, logs: 0, audit: 0 });
+        Object.assign(selfStatus, { branch: '', remotes_count: 0, changed_files: 0 });
+      }
     });
 
     return {token,loginUser,loginPwd,loginErr,toastMsg,tab,projects,logs,recentLogs,remotes,policies,stats,selfStatus,

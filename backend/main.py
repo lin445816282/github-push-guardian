@@ -260,7 +260,7 @@ async def me(user: dict = Depends(get_current_user)):
 
 # ── API: Projects ───────────────────────────
 @app.get("/api/projects")
-async def list_projects():
+async def list_projects(user: dict = Depends(get_current_user)):
     conn = get_db()
     rows = [dict(r) for r in conn.execute("SELECT * FROM projects ORDER BY updated_at DESC").fetchall()]
     conn.close()
@@ -342,7 +342,7 @@ async def update_project(pid: int, p: ProjectUpdate, user: dict = Depends(get_cu
 
 # ── API: Git Status & Pull ──────────────────
 @app.get("/api/projects/{pid}/status")
-async def project_status(pid: int):
+async def project_status(pid: int, user: dict = Depends(get_current_user)):
     conn = get_db()
     p = conn.execute("SELECT * FROM projects WHERE id=?", (pid,)).fetchone()
     conn.close()
@@ -477,7 +477,7 @@ def _match_conditions(conditions: list, event: dict) -> bool:
 
 # ── API: Policies ───────────────────────────
 @app.get("/api/policies")
-async def list_policies():
+async def list_policies(user: dict = Depends(get_current_user)):
     conn = get_db()
     rows = [dict(r) for r in conn.execute("SELECT * FROM policy_rules ORDER BY id").fetchall()]
     for r in rows:
@@ -527,7 +527,7 @@ async def del_policy(pid: int, user: dict = Depends(get_current_user)):
 
 # ── API: Audit Logs ─────────────────────────
 @app.get("/api/audit")
-async def list_audit(limit: int = 50, offset: int = 0):
+async def list_audit(limit: int = 50, offset: int = 0, user: dict = Depends(get_current_user)):
     conn = get_db()
     rows = [dict(r) for r in conn.execute(
         "SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ? OFFSET ?", (limit, offset)
@@ -538,7 +538,7 @@ async def list_audit(limit: int = 50, offset: int = 0):
 
 # ── API: Logs ───────────────────────────────
 @app.get("/api/logs")
-async def list_logs(limit: int = 50, offset: int = 0):
+async def list_logs(limit: int = 50, offset: int = 0, user: dict = Depends(get_current_user)):
     conn = get_db()
     rows = [dict(r) for r in conn.execute(
         "SELECT * FROM push_logs ORDER BY created_at DESC LIMIT ? OFFSET ?", (limit, offset)
@@ -549,7 +549,7 @@ async def list_logs(limit: int = 50, offset: int = 0):
 
 # ── API: Remotes ────────────────────────────
 @app.get("/api/remotes")
-async def list_remotes():
+async def list_remotes(user: dict = Depends(get_current_user)):
     conn = get_db()
     rows = [dict(r) for r in conn.execute("SELECT * FROM remotes ORDER BY id").fetchall()]
     conn.close()
@@ -560,7 +560,7 @@ class RemoteCreate(BaseModel):
     url: str
 
 @app.post("/api/remotes")
-async def add_remote(r: RemoteCreate):
+async def add_remote(r: RemoteCreate, user: dict = Depends(get_current_user)):
     conn = get_db()
     conn.execute("INSERT INTO remotes (name, url) VALUES (?,?)", (r.name, r.url))
     conn.commit()
@@ -568,7 +568,7 @@ async def add_remote(r: RemoteCreate):
     return {"ok": True}
 
 @app.delete("/api/remotes/{rid}")
-async def del_remote(rid: int):
+async def del_remote(rid: int, user: dict = Depends(get_current_user)):
     conn = get_db()
     conn.execute("DELETE FROM remotes WHERE id=?", (rid,))
     conn.commit()
@@ -577,7 +577,7 @@ async def del_remote(rid: int):
 
 # ── API: Self Status ────────────────────────
 @app.get("/api/self")
-async def self_status():
+async def self_status(user: dict = Depends(get_current_user)):
     import subprocess
     try:
         r = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True, cwd=BASE_DIR.parent, timeout=5)
