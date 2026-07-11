@@ -1,5 +1,6 @@
 # DB
 *.db
+!backend/data/guardian.db
 *.sqlite3
 
 # Python
