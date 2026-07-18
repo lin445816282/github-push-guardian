@@ -199,6 +199,26 @@ body::before {
 }
 .btn-cancel:hover{color:var(--ink);border-color:var(--accent)}
 
+/* Quick path buttons */
+.quick-paths{
+  display:flex;flex-wrap:nowrap;gap:6px;align-items:center;
+  margin-bottom:8px;overflow-x:auto;white-space:nowrap;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:2px;
+}
+.quick-label{
+  font-size:11px;color:var(--lightink);font-family:'Noto Serif SC',serif;
+}
+.quick-path-btn{
+  background:var(--bg2);color:var(--ink);border:1px solid var(--lightink);
+  padding:4px 10px;border-radius:var(--radius);
+  font-size:11px;cursor:pointer;transition:all .2s;
+  font-family:'Noto Serif SC',serif;
+}
+.quick-path-btn:hover{
+  background:var(--accent);color:var(--bg1);border-color:var(--accent);
+}
+
 /* Toast */
 .toast{
   position:fixed;top:20px;left:50%;transform:translateX(-50%);
@@ -437,10 +457,14 @@ body::before {
       <h3>➕ 添加项目</h3>
       <label>项目名称</label>
       <input v-model="newProj.name" placeholder="e.g. 门店资金 · funds-v2">
-      <label>本地路径</label>
-      <input v-model="newProj.path" placeholder="/home/xiaolin/projects/xxx">
       <label>Git 远程地址</label>
       <input v-model="newProj.remote_url" placeholder="git@github.com:user/repo.git">
+      <label>本地路径</label>
+      <input v-model="newProj.path" placeholder="/home/xiaolin/projects/xxx">
+      <div v-if="localPaths.length" class="quick-paths">
+        <span class="quick-label">📁 快捷路径：</span>
+        <button v-for="lp in localPaths" class="quick-path-btn" @click="pickLocalPath(lp,'new')" :title="lp.path">{{lp.name}}</button>
+      </div>
       <label>分支</label>
       <input v-model="newProj.branch" placeholder="main">
       <div class="modal-actions">
@@ -455,10 +479,14 @@ body::before {
       <h3>✏️ 编辑项目</h3>
       <label>项目名称</label>
       <input v-model="editProj.name" placeholder="项目名称">
-      <label>本地路径</label>
-      <input v-model="editProj.path" placeholder="/home/xiaolin/projects/xxx">
       <label>Git 远程地址</label>
       <input v-model="editProj.remote_url" placeholder="git@github.com:user/repo.git">
+      <label>本地路径</label>
+      <input v-model="editProj.path" placeholder="/home/xiaolin/projects/xxx">
+      <div v-if="localPaths.length" class="quick-paths">
+        <span class="quick-label">📁 快捷路径：</span>
+        <button v-for="lp in localPaths" class="quick-path-btn" @click="pickLocalPath(lp,'edit')" :title="lp.path">{{lp.name}}</button>
+      </div>
       <label>分支</label>
       <input v-model="editProj.branch" placeholder="main">
       <div class="modal-actions">
@@ -553,6 +581,7 @@ const app = createApp({
     const showAddProj = ref(false);
     const showEditProj = ref(false);
     const editingId = ref(null);
+    const localPaths = ref([]);
     const showAddRemote = ref(false);
     const showAddPolicy = ref(false);
     const pushResult = ref(null);
@@ -678,6 +707,32 @@ const app = createApp({
       await loadDash();
       toast('✅ 项目已添加');
     }
+
+    async function fetchLocalPaths(){
+      const res = await api('/api/local-paths');
+      if(res) localPaths.value = res.paths || [];
+    }
+
+    function pickLocalPath(lp, form){
+      if(form==='new'){
+        newProj.path = lp.path;
+      }else{
+        editProj.path = lp.path;
+      }
+      toast('📁 已匹配：'+lp.name);
+      // Async fetch git remote
+      api('/api/git-remote?path='+encodeURIComponent(lp.path)).then(res => {
+        if(res && res.ok && res.remote_url){
+          if(form==='new') newProj.remote_url = res.remote_url;
+          else editProj.remote_url = res.remote_url;
+          toast('🔗 已匹配远程：'+res.remote_url);
+        }
+      });
+    }
+
+    // Watch showAddProj to preload paths
+    watch(showAddProj, v => { if(v) fetchLocalPaths(); });
+    watch(showEditProj, v => { if(v) fetchLocalPaths(); });
 
     function openEditProj(p){
       editingId.value = p.id;
@@ -826,7 +881,8 @@ const app = createApp({
       expandedId,gitLoading,actionLoading,pendingCount,pushLoading,
       theme,themeIcon,themeLabel,toggleTheme,
       doLogin,logout,loadDash,loadProjects,loadLogs,loadSelf,loadPolicies,
-      addProject,openEditProj,saveProj,toggleExpand,pullProject,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy};
+      addProject,openEditProj,saveProj,toggleExpand,pullProject,delProject,pushProject,addRemote,delRemote,pushAll,addPolicy,togglePolicy,delPolicy,
+      localPaths,fetchLocalPaths,pickLocalPath};
   }
 });
 app.mount('#app');

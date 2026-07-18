@@ -575,6 +575,42 @@ async def del_remote(rid: int, user: dict = Depends(get_current_user)):
     conn.close()
     return {"ok": True}
 
+# ── API: Local Paths & Git Remote ────────────
+@app.get("/api/local-paths")
+async def local_paths(user: dict = Depends(get_current_user)):
+    """Scan ~/projects/ for directories with .git"""
+    base = Path.home() / "projects"
+    if not base.is_dir():
+        return {"paths": []}
+    results = []
+    for d in sorted(base.iterdir()):
+        if d.is_dir() and (d / ".git").is_dir():
+            results.append({
+                "name": d.name,
+                "path": str(d),
+            })
+    return {"paths": results}
+
+@app.get("/api/git-remote")
+async def get_git_remote(path: str, user: dict = Depends(get_current_user)):
+    """Get git remote URL for a given path"""
+    p = Path(path)
+    if not p.is_dir() or not (p / ".git").is_dir():
+        return {"ok": False, "remote_url": "", "error": "not a git repo"}
+    try:
+        out, err, code = _git("remote get-url origin", str(p), timeout=5)
+        if code == 0 and out:
+            return {"ok": True, "remote_url": out}
+        # Try to list all remotes and pick first
+        out2, _, c2 = _git("remote -v", str(p), timeout=5)
+        if c2 == 0 and out2:
+            first_line = out2.split("\n")[0]
+            url_part = first_line.split()[1] if len(first_line.split()) > 1 else ""
+            return {"ok": True, "remote_url": url_part}
+        return {"ok": False, "remote_url": "", "error": err or "no remote found"}
+    except Exception as e:
+        return {"ok": False, "remote_url": "", "error": str(e)}
+
 # ── API: Self Status ────────────────────────
 @app.get("/api/self")
 async def self_status(user: dict = Depends(get_current_user)):
