@@ -384,8 +384,9 @@ async def git_push(req: PushReq, user: dict = Depends(get_current_user), request
         raise HTTPException(404, "Project not found")
 
     import subprocess, shlex
-    cmd = f"cd {shlex.quote(proj['path'])} && git add . && git commit -m {shlex.quote(req.message)} && git push origin {shlex.quote(proj['branch'])} 2>&1"
+    cmd = f"cd {shlex.quote(proj['path'])} && git add . && (git commit -m {shlex.quote(req.message)} || true) && git push origin {shlex.quote(proj['branch'])} 2>&1"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+    # commit 无变更时返回非0（nothing to commit），但 push 仍应执行；只要 push 成功即为 ok
     status = "ok" if result.returncode == 0 else "error"
     detail = (result.stdout + result.stderr)[:2000]
 
